@@ -9,6 +9,25 @@
 #include <boost/functional/hash.hpp>
 
 namespace AIToolbox {
+    namespace Impl {
+        template <size_t I, typename F, typename... Args>
+        struct tuple_get {
+            using Wrap = std::tuple<Args...>;
+            auto operator()(const Wrap & w, int i, F fun) {
+                if (i == I) return fun(std::get<I>(w));
+                else return tuple_get<I-1, F, Args...>()(w, i, fun);
+            }
+        };
+
+        template <typename F, typename... Args>
+        struct tuple_get<0, F, Args...> {
+            using Wrap = std::tuple<Args...>;
+            auto operator()(const Wrap & w, int, F fun) {
+                return fun(std::get<0>(w));
+            }
+        };
+    }
+
     /// This is the max absolute difference for which two values can be considered equal.
     constexpr auto equalToleranceSmall = 0.000001;
     /// This is a relative term used in the checkEqualGeneral functions, where
@@ -40,6 +59,26 @@ namespace AIToolbox {
             for ( size_t j = 0; j < d2; ++j )
                 for ( size_t x = 0; x < d3; ++x )
                     out[i][j][x] = in[i][j][x];
+    }
+
+    /**
+     * @brief This function allows to access a tuple element in a runtime manner.
+     *
+     * This function returns the result of applying a functor to a tuple
+     * element selected at runtime.
+     *
+     * @tparam F The type of the functor.
+     * @tparam Args The types of the elements of the tuple.
+     * @param t The tuple to operate on.
+     * @param i The index to use as argument for the functor.
+     * @param fun The functor to call on the function.
+     *
+     * @return The return value of the called functor on the specified tuple element.
+     */
+    template <typename F, typename... Args>
+    auto tuple_get(const std::tuple<Args...>& t, size_t i, F fun)
+    {
+        return Impl::tuple_get<sizeof...(Args) - 1, F, Args...>()(t, i, fun);
     }
 
     /**
